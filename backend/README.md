@@ -13,8 +13,8 @@ The `cdk.json` file tells the CDK Toolkit how to execute your app.
 - [x] An AWS Cognito user pool to authenticate users to the REST API and the frontend app.
 - [x] AWS SSM parameters for all the solution configurations.
 - [x] [Least-privilege](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege) IAM permissions.
-- [x] A VPC with public, private and isolated subnets to ensure the security and efficiency of the solution.
-- [x] An Amazon Aurora PostgreSQL database used for both semantic search and SQL querying.
+- [x] A VPC with public and isolated subnets (cost optimized - no NAT Gateway) to ensure the security and efficiency of the solution.
+- [x] An RDS PostgreSQL database (t3.micro - cost optimized) used for both semantic search and SQL querying.
 - [x] A security group with configured access to the database, used by Amazon SageMaker Processing Jobs for data ingestion.
 - [x] An IAM managed policy to grant SageMaker Jobs the right permissions.
 
