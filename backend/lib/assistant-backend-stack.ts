@@ -62,26 +62,24 @@ export class AssistantBackendStack extends cdk.Stack {
     );
 
     // -----------------------------------------------------------------------
-    // Add an Amazon Aurora PostgreSQL database with PGvector for semantic search.
-    // Create an Aurora PostgreSQL database, to serve as the semantic search
-    // engine using the pgvector extension https://github.com/pgvector/pgvector
-    // https://aws.amazon.com/about-aws/whats-new/2023/07/amazon-aurora-postgresql-pgvector-vector-storage-similarity-search/
+    // Use RDS PostgreSQL instead of Aurora for cost optimization
+    // Single instance with pgvector extension for semantic search
     const AgentDBSecret = rds.Credentials.fromGeneratedSecret("AgentDBAdmin");
 
-    const AgentDB = new rds.DatabaseCluster(this, "AgentDB", {
-      engine: rds.DatabaseClusterEngine.auroraPostgres({
-        version: rds.AuroraPostgresEngineVersion.VER_15_3,
+    const AgentDB = new rds.DatabaseInstance(this, "AgentDB", {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_15_3,
       }),
-      defaultDatabaseName: AGENT_DB_NAME,
-      // Switch to cdk.RemovalPolicy.RETAIN when installing production
-      // to avoid accidental data deletions.
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO), // Free tier eligible
+      databaseName: AGENT_DB_NAME,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       credentials: AgentDBSecret,
-      // Writer must be provided
-      writer: rds.ClusterInstance.serverlessV2("ServerlessInstanceWriter"),
       vpc: vpc.vpc,
-      // TODO: switch to using private subnets after development
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+      allocatedStorage: 20, // Minimum storage
+      storageType: rds.StorageType.GP2, // Cheaper than GP3
+      deleteAutomatedBackups: true,
+      backupRetention: cdk.Duration.days(1), // Minimum backup retention
     });
 
     // -----------------------------------------------------------------------
@@ -136,9 +134,9 @@ export class AssistantBackendStack extends cdk.Stack {
       }
     );
 
-    // Retrieve the subnet IDs from the VPC
+    // Retrieve the subnet IDs from the VPC (using public subnets now)
     const subnetIds = vpc.vpc.selectSubnets({
-      subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      subnetType: ec2.SubnetType.PUBLIC,
     }).subnetIds;
 
     // Convert the subnet IDs to a JSON format
@@ -171,7 +169,7 @@ export class AssistantBackendStack extends cdk.Stack {
         billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
         // Considerations when choosing a table class
         // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithTables.tableclasses.html
-        tableClass: dynamodb.TableClass.STANDARD,
+        tableClass: dynamodb.TableClass.STANDARD_INFREQUENT_ACCESS, // Cheaper for infrequent access
         // When moving to production, use cdk.RemovalPolicy.RETAIN instead
         // which will keep the database table when destroying the stack.
         // this avoids accidental deletion of user data.
@@ -195,9 +193,10 @@ export class AssistantBackendStack extends cdk.Stack {
           }
         ),
         description: "Lambda function with bedrock access created via CDK",
-        timeout: cdk.Duration.minutes(5),
-        memorySize: 2048,
+        timeout: cdk.Duration.minutes(3), // Reduced timeout
+        memorySize: 512, // Reduced memory for cost optimization
         vpc: vpc.vpc,
+        vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC }, // Use public subnet to avoid NAT Gateway costs
         environment: {
           BEDROCK_REGION_PARAMETER: ssm_bedrock_region_parameter.parameterName,
           LLM_MODEL_ID_PARAMETER: ssm_llm_model_id_parameter.parameterName,
@@ -222,10 +221,13 @@ export class AssistantBackendStack extends cdk.Stack {
     // TODO: review
     AgentDB.connections.allowDefaultPortFrom(agent_executor_lambda);
 
-    // Allow Lambda to call bedrock.
+    // Allow Lambda to call bedrock with minimal permissions
     agent_executor_lambda.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["bedrock:*"],
+        actions: [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream"
+        ],
         resources: ["*"],
         effect: iam.Effect.ALLOW,
       })

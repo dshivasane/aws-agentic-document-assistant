@@ -39,19 +39,14 @@ export class AmplifyChatuiStack extends cdk.Stack {
       code: codecommit.Code.fromDirectory(path.join(__dirname, '../chat-app'), 'main')
     });
 
-    // from https://docs.aws.amazon.com/cdk/api/v2/docs/aws-amplify-alpha-readme.html
+    // Use static hosting instead of Web Compute for cost optimization
     const amplifyChatUI = new amplify.App(this, 'AmplifyChatUI', {
       autoBranchDeletion: true,
       sourceCodeProvider: new amplify.CodeCommitSourceCodeProvider(
         {repository: amplifyChatUICodeCommitRepo}),
-      // enable server side rendering
-      platform: amplify.Platform.WEB_COMPUTE,
-      // https://docs.aws.amazon.com/amplify/latest/userguide/environment-variables.html#amplify-console-environment-variables
+      // Use static hosting (cheaper than Web Compute)
+      platform: amplify.Platform.WEB,
       environmentVariables: {
-        // the following custom image is used to support Next.js 14, see links for details:
-        // 1. https://aws.amazon.com/blogs/mobile/6-new-aws-amplify-launches-to-make-frontend-development-easier/
-        // 2. https://github.com/aws-cloudformation/cloudformation-coverage-roadmap/issues/1299
-        '_CUSTOM_IMAGE': 'amplify:al2023',
         'AMPLIFY_USERPOOL_ID': cognito_user_pool_id_parameter,
         'COGNITO_USERPOOL_CLIENT_ID': cognito_user_pool_client_id_parameter,
         'API_ENDPOINT': agent_api_parameter
