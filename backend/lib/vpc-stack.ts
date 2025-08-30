@@ -11,7 +11,7 @@ export class Vpc extends Construct {
     super(scope, id);
 
     const vpc = new ec2.Vpc(this, 'VPC', {
-      maxAzs: 1, // Reduced to single AZ for cost optimization
+      maxAzs: 2, // RDS requires at least 2 AZs
       natGateways: 0, // Remove NAT Gateway to save costs
       subnetConfiguration: [
         {

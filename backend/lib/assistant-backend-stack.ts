@@ -68,7 +68,7 @@ export class AssistantBackendStack extends cdk.Stack {
 
     const AgentDB = new rds.DatabaseInstance(this, "AgentDB", {
       engine: rds.DatabaseInstanceEngine.postgres({
-        version: rds.PostgresEngineVersion.VER_15_3,
+        version: rds.PostgresEngineVersion.VER_15_8,
       }),
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO), // Free tier eligible
       databaseName: AGENT_DB_NAME,

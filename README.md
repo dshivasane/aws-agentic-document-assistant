@@ -40,30 +40,65 @@ Follow the insturctions below to setup the solution on your account.
 
 ### Prerequisites
 
-- An AWS account.
-- [Configure model access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html#add-model-access) to Anthroptic Claude and Amazon Titan models in one of [the supported regions of Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html).
-- to install the [AWS Cloud Development Kit (CDK)](https://aws.amazon.com/cdk/) stack:
-    - We recommend using an [AWS Cloud9 environment](https://docs.aws.amazon.com/cloud9/latest/user-guide/tutorial-create-environment.html) if you indent to make changes or [CloudShell](https://aws.amazon.com/cloudshell/) to simply install it.
-    - Alternatively, you can trigger the installation from your local environment after you setup the CDK command-line by following the [documentation instructions](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_prerequisites).
+- An AWS account with programmatic access configured (AWS CLI or IAM user with access keys)
+- [Configure model access](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html#add-model-access) to Anthroptic Claude and Amazon Titan models in one of [the supported regions of Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html)
+- **Docker Desktop** installed and running (required for CDK Lambda container builds)
+- Node.js (version 18 or later) and npm installed
+- [AWS Cloud Development Kit (CDK)](https://aws.amazon.com/cdk/) CLI installed globally: `npm install -g aws-cdk`
+- For deployment environment:
+    - We recommend using an [AWS Cloud9 environment](https://docs.aws.amazon.com/cloud9/latest/user-guide/tutorial-create-environment.html) if you intend to make changes
+    - [CloudShell](https://aws.amazon.com/cloudshell/) for simple installation
+    - Local environment after setting up CDK following [documentation instructions](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_prerequisites)
 
 ### Installation
 
 To install the solution in your AWS account:
 
-1. Clone this repository.
-2. Install the backend [CDK app](https://docs.aws.amazon.com/cdk/v2/guide/home.html), as follows:
-    1. Go inside the `backend` folder.
-    2. Run `npm install` to install the dependencies.
-    3. If you have never used CDK in the current account and region, run [bootstrapping](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html) with `npx cdk bootstrap`.
-    4. Run `npx cdk deploy` to deploy the stack.
-    5. Take note of the SageMaker IAM Policy ARN found in the CDK stack output.
-3. Deploy the Next.js frontend on AWS Amplify:
-    1. Go inside the `frontend` folder.
-    2. Run `npm install` to install the dependencies.
-    3. Run `npx cdk deploy` to deploy a stack that builds an Amplify CI/CD
-    4. Once the CI/CD is ready go to the Amplify console and trigger a build.
-    5. Once the app is built, click the hosting link to view the app. You can now create a new account and login to view the assistant.
-4. To load the underlying data, run the SageMaker Pipeline in `data-pipelines/04-sagemaker-pipeline-for-documents-processing.ipynb`. This will load two files: (1) a pre-created csv file to load into the SQL tables, and (2) a json file containing preprocessed Amazon financial documents which will be used to create the semantic search index used by the LLM assistant.
+1. **Clone this repository**
+   ```bash
+   git clone <repository-url>
+   cd aws-agentic-document-assistant
+   ```
+
+2. **Install the backend CDK app**:
+   1. Navigate to the backend folder: `cd backend`
+   2. Install dependencies: `npm install`
+   3. **Ensure Docker Desktop is running** (required for Lambda container builds)
+   4. If you have never used CDK in the current account and region, run [bootstrapping](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html):
+      ```bash
+      cdk bootstrap
+      ```
+   5. Deploy the stack:
+      ```bash
+      cdk deploy --all
+      ```
+      **Note**: Use global `cdk` command rather than `npx cdk` to avoid version compatibility issues
+   6. Take note of the SageMaker IAM Policy ARN found in the CDK stack output
+
+3. **Deploy the Next.js frontend on AWS Amplify**:
+   1. Navigate to the frontend folder: `cd ../frontend`
+   2. Install dependencies: `npm install`
+   3. Deploy the Amplify stack: `cdk deploy`
+   4. Go to the AWS Amplify console and connect your repository manually:
+      - Click on the created Amplify app
+      - Connect a repository (GitHub recommended) or deploy manually
+      - Point to the `frontend/chat-app` folder as the build root
+   5. Trigger a build and use the hosting link to access the app
+
+4. **Load the data**:
+   Run the SageMaker Pipeline in `data-pipelines/04-sagemaker-pipeline-for-documents-processing.ipynb` to load:
+   - Pre-created CSV file for SQL tables
+   - JSON file with preprocessed Amazon financial documents for semantic search
+
+### Troubleshooting
+
+**Common Issues:**
+- **Docker not running**: Ensure Docker Desktop is running before CDK deployment
+- **CDK version conflicts**: Use global `cdk` command instead of `npx cdk`
+- **RDS deployment fails**: The solution requires at least 2 Availability Zones for RDS subnet groups
+- **PostgreSQL version not available**: If you encounter PostgreSQL version errors, the code uses version 15.8 which should be widely supported
+- **CodeCommit not available**: CodeCommit is deprecated for new AWS accounts. The frontend creates an Amplify app that requires manual repository connection
+- **Lambda deployment issues**: Verify your AWS credentials have sufficient permissions for Lambda, VPC, and RDS operations
 
 After running the above steps successfully, you can start interacting with the assistant and ask questions.
 If you want to update the underlying documents and extract new entities, explore the notebooks 1 to 5 under the `experiments` folder.

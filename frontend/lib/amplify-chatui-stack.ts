@@ -1,13 +1,7 @@
 import * as amplify from '@aws-cdk/aws-amplify-alpha';
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import * as codecommit from 'aws-cdk-lib/aws-codecommit';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as apigateway from "aws-cdk-lib/aws-apigateway";
-import * as cognito from 'aws-cdk-lib/aws-cognito';
-import * as iam from 'aws-cdk-lib/aws-iam';
-import path = require('path');
 
 export class AmplifyChatuiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -30,20 +24,9 @@ export class AmplifyChatuiStack extends cdk.Stack {
     );
 
     // -------------------------------------------------------------------------
-
-    // create a new repository and initialize it with the chatui nextjs app source code.
-    // https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_codecommit-readme.html
-    const amplifyChatUICodeCommitRepo = new codecommit.Repository(this, 'NextJsGitRepository', {
-      repositoryName: 'nextjs-amplify-chatui',
-      description: 'A chatui with nextjs hosted on AWS Amplify.',
-      code: codecommit.Code.fromDirectory(path.join(__dirname, '../chat-app'), 'main')
-    });
-
-    // Use static hosting instead of Web Compute for cost optimization
+    // Create Amplify app without source code provider (manual deployment)
+    // CodeCommit is deprecated for new AWS accounts
     const amplifyChatUI = new amplify.App(this, 'AmplifyChatUI', {
-      autoBranchDeletion: true,
-      sourceCodeProvider: new amplify.CodeCommitSourceCodeProvider(
-        {repository: amplifyChatUICodeCommitRepo}),
       // Use static hosting (cheaper than Web Compute)
       platform: amplify.Platform.WEB,
       environmentVariables: {
@@ -53,6 +36,7 @@ export class AmplifyChatuiStack extends cdk.Stack {
       }
     });
 
+    // Add main branch for manual deployment
     amplifyChatUI.addBranch('main', {stage: "PRODUCTION"});
 
     // -----------------------------------------------------------------------
