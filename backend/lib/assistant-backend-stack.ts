@@ -75,7 +75,7 @@ export class AssistantBackendStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       credentials: AgentDBSecret,
       vpc: vpc.vpc,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }, // Use isolated subnets for database
       allocatedStorage: 20, // Minimum storage
       storageType: rds.StorageType.GP2, // Cheaper than GP3
       deleteAutomatedBackups: true,
@@ -134,7 +134,7 @@ export class AssistantBackendStack extends cdk.Stack {
       }
     );
 
-    // Retrieve the subnet IDs from the VPC (using public subnets now)
+    // Retrieve the subnet IDs from the VPC (using public subnets for SageMaker)
     const subnetIds = vpc.vpc.selectSubnets({
       subnetType: ec2.SubnetType.PUBLIC,
     }).subnetIds;
@@ -196,7 +196,8 @@ export class AssistantBackendStack extends cdk.Stack {
         timeout: cdk.Duration.minutes(3), // Reduced timeout
         memorySize: 512, // Reduced memory for cost optimization
         vpc: vpc.vpc,
-        vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC }, // Use public subnet to avoid NAT Gateway costs
+        vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC }, // Use public subnet for cost optimization
+        allowPublicSubnet: true, // Explicitly allow Lambda in public subnet
         environment: {
           BEDROCK_REGION_PARAMETER: ssm_bedrock_region_parameter.parameterName,
           LLM_MODEL_ID_PARAMETER: ssm_llm_model_id_parameter.parameterName,

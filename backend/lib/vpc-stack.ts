@@ -34,11 +34,11 @@ export class Vpc extends Construct {
       service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
     });
 
-    // Remove expensive interface endpoints - Lambda will use public internet
-    // this.secretsManagerVpcEndpoint = vpc.addInterfaceEndpoint('SecretsManagerEndpoint', {
-    //   service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
-    //   open: true,
-    // });
+    // Add Bedrock VPC endpoint for Lambda access
+    vpc.addInterfaceEndpoint('BedrockEndpoint', {
+      service: ec2.InterfaceVpcEndpointAwsService.BEDROCK_RUNTIME,
+      open: true,
+    });
 
     this.vpc = vpc;
   }
