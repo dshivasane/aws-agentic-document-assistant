@@ -75,7 +75,7 @@ export class AssistantBackendStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       credentials: AgentDBSecret,
       vpc: vpc.vpc,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }, // Use isolated subnets for database
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }, // Use private subnets for database
       allocatedStorage: 20, // Minimum storage
       storageType: rds.StorageType.GP2, // Cheaper than GP3
       deleteAutomatedBackups: true,
@@ -196,8 +196,9 @@ export class AssistantBackendStack extends cdk.Stack {
         timeout: cdk.Duration.minutes(3), // Reduced timeout
         memorySize: 512, // Reduced memory for cost optimization
         vpc: vpc.vpc,
-        vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC }, // Use public subnet for cost optimization
-        allowPublicSubnet: true, // Explicitly allow Lambda in public subnet
+        vpcSubnets: {
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+        },
         environment: {
           BEDROCK_REGION_PARAMETER: ssm_bedrock_region_parameter.parameterName,
           LLM_MODEL_ID_PARAMETER: ssm_llm_model_id_parameter.parameterName,
@@ -218,9 +219,12 @@ export class AssistantBackendStack extends cdk.Stack {
     // Allow Lambda to read the secret for Aurora DB connection.
     AgentDB.secret?.grantRead(agent_executor_lambda);
 
-    // Allow network access to/from Lambda
-    // TODO: review
-    AgentDB.connections.allowDefaultPortFrom(agent_executor_lambda);
+    // Allow Lambda to connect to the database
+    AgentDB.connections.allowFrom(
+      agent_executor_lambda,
+      ec2.Port.tcp(5432),
+      "Allow Lambda to connect to RDS"
+    );
 
     // Allow Lambda to call bedrock with minimal permissions
     agent_executor_lambda.addToRolePolicy(

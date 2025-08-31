@@ -12,15 +12,15 @@ export class Vpc extends Construct {
 
     const vpc = new ec2.Vpc(this, 'VPC', {
       maxAzs: 2, // RDS requires at least 2 AZs
-      natGateways: 0, // Remove NAT Gateway to save costs
+      natGateways: 1, // Need NAT for Lambda internet access
       subnetConfiguration: [
         {
           name: 'public',
           subnetType: ec2.SubnetType.PUBLIC,
         },
         {
-          name: 'isolated',
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+          name: 'private',
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
         },
       ],
     });

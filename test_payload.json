@@ -1,0 +1,6 @@
+{
+  "user_input": "Hello",
+  "session_id": "test-123",
+  "chatbot_type": "basic",
+  "clean_history": true
+}
